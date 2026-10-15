@@ -40,3 +40,4 @@ Route::get('/test', function () {
 });
 
 Route::get('/prueba-bd', [PruebaBDController::class, 'index']);
+Route::get('/debug-cors', fn () => config('cors'));
