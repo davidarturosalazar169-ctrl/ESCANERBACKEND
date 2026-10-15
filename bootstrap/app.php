@@ -17,10 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ->everyMinute()
             ->withoutOverlapping();
     })
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
-        $middleware->validateCsrfTokens(except: ['api/*']);
-    })
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->validateCsrfTokens(except: ['api/*']);
+})
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn ($request, $exception) =>
