@@ -1,28 +1,39 @@
-
 <?php
 
 return [
-    'paths' => ['api/*'],
 
-    'allowed_methods' => ['*'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+    ],
+
+    'allowed_methods' => [
+        '*',
+    ],
 
     'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:5173'),
+        '*',
+        'http://localhost:5179',
         'http://localhost:5173',
         'http://localhost:5174',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:5174',
+        'http://localhost:5178',
+        'https://localhost',
+        'http://localhost',
+        'capacitor://localhost',
+        'https://escanerbackend.onrender.com/',
     ],
 
-    'allowed_origins_patterns' => [
-        '^https?://(localhost|127\.0\.0\.1)(:\d+)?$',
-    ],
+    'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => [
+        '*',
+    ],
 
     'exposed_headers' => [],
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
+
 ];
+
