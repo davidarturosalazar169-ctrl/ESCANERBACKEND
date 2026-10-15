@@ -39,6 +39,15 @@ Route::get('/test', function () {
     return response()->json(['mensaje' => 'API funcionando']);
 });
 
+Route::get('/status', function () {
+    return response()->json([
+        'ok' => true,
+        'message' => 'API funcionando correctamente.',
+        'service' => 'EscanerParcial2 API',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
 Route::get('/prueba-bd', [PruebaBDController::class, 'index']);
 
 Route::get('/debug-cors', function () {
