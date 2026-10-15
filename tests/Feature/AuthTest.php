@@ -66,4 +66,5 @@ class AuthTest extends TestCase
             ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5174')
             ->assertHeader('Access-Control-Allow-Credentials', 'true');
     }
+
 }
