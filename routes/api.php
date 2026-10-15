@@ -40,4 +40,11 @@ Route::get('/test', function () {
 });
 
 Route::get('/prueba-bd', [PruebaBDController::class, 'index']);
-Route::get('/debug-cors', fn () => config('cors'));
+
+Route::get('/debug-cors', function () {
+    return response()->json([
+        'cors_config' => config('cors'),
+        'entorno' => app()->environment(),
+        'config_cacheada' => app()->configurationIsCached(),
+    ]);
+});
