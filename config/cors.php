@@ -11,19 +11,18 @@ return [
         '*',
     ],
 
-    'allowed_origins' => [
-        '*',
-        'http://localhost:5179',
+    'allowed_origins' => array_values(array_unique([
+        env('FRONTEND_URL', 'http://localhost:5173'),
         'http://localhost:5173',
         'http://localhost:5174',
-        'http://localhost:5178',
-        'https://localhost',
-        'http://localhost',
-        'capacitor://localhost',
-        'https://escanerbackend.onrender.com/',
-    ],
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174',
+    ])),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '^https?://(localhost|127\.0\.0\.1)(:\d+)?$',
+        '^capacitor://localhost$',
+    ],
 
     'allowed_headers' => [
         '*',
@@ -33,7 +32,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
-
