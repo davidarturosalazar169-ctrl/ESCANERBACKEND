@@ -20,6 +20,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertOk()->assertJsonPath('user.email', $user->email);
+        $response->assertCookie(config('session.cookie'));
         $this->getJson('/api/me')->assertOk()->assertJsonPath('user.id', $user->id);
     }
 

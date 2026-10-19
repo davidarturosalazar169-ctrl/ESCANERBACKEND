@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ScannerController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Session\Middleware\StartSession;
 use App\Http\Controllers\Api\PruebaBDController;
 
 /*
@@ -15,7 +16,7 @@ use App\Http\Controllers\Api\PruebaBDController;
 |
 */
 
-Route::middleware('web')->group(function (): void {
+Route::middleware(['web', StartSession::class])->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
 
