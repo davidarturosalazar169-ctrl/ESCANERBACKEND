@@ -44,16 +44,15 @@ class ProductScanner
                 try {
                     $data = $browserScanner->scan($url, $customSelectors);
                 } catch (\Throwable $browserException) {
-                    if (str_contains($host, 'liverpool.')) {
-                        try {
-                            $data = $this->scanStaticPage($url, ['selectors' => $staticSelectors]);
-                        } catch (\Throwable) {
-                            throw $browserException;
-                        }
-                    } elseif (!str_contains($browserException->getMessage(), 'ERR_NAME_NOT_RESOLVED')) {
-                        throw $browserException;
-                    } else {
+                    try {
                         $data = $this->scanStaticPage($url, ['selectors' => $staticSelectors]);
+                    } catch (\Throwable $staticException) {
+                        throw new RuntimeException(
+                            'Fallaron los dos métodos de escaneo. Playwright: '
+                            .$browserException->getMessage()
+                            .' HTTP: '.$staticException->getMessage(),
+                            previous: $browserException
+                        );
                     }
                 }
             }
