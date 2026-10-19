@@ -126,7 +126,11 @@ class ProductScanner
     private function scanStaticPage(string $url, array $rule): array
     {
         $html = Http::timeout(20)
-            ->withHeaders(['User-Agent' => 'EscanerParcial2/1.0 (+product research)'])
+            ->withHeaders([
+                'Accept' => 'text/html,application/xhtml+xml',
+                'Accept-Language' => 'es-MX,es;q=0.9,en;q=0.8',
+                'User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131 Safari/537.36',
+            ])
             ->get($url)
             ->throw()
             ->body();
@@ -142,6 +146,7 @@ class ProductScanner
         libxml_clear_errors();
         $xpath = new \DOMXPath($dom);
         $jsonProduct = $this->jsonLdProduct($xpath);
+        $amazonProduct = $this->amazonEmbeddedProduct($html);
 
         $customFields = [];
         foreach ($selectors as $key => $selector) {
@@ -151,11 +156,34 @@ class ProductScanner
         }
 
         return [
-            'name' => $jsonProduct['name'] ?? $this->firstText($xpath, [$selectors['name'] ?? '', '//h1', '//meta[@property="og:title"]/@content', '//title']),
-            'price' => $this->price($jsonProduct['price'] ?? $this->firstText($xpath, [$selectors['price'] ?? '', '//meta[@property="product:price:amount"]/@content', '//*[contains(@class,"price")]'])),
-            'currency' => $jsonProduct['currency'] ?? $this->firstText($xpath, ['//meta[@property="product:price:currency"]/@content']) ?: 'MXN',
-            'image' => $jsonProduct['image'] ?? $this->firstAttribute($xpath, [$selectors['image'] ?? '', '//meta[@property="og:image"]/@content'], 'src'),
+            'name' => $jsonProduct['name'] ?? $amazonProduct['name'] ?? $this->firstText($xpath, [$selectors['name'] ?? '', '//h1', '//meta[@property="og:title"]/@content', '//title']),
+            'price' => $this->price($jsonProduct['price'] ?? $amazonProduct['price'] ?? $this->firstText($xpath, [$selectors['price'] ?? '', '//meta[@property="product:price:amount"]/@content', '//*[contains(@class,"price")]'])),
+            'currency' => $jsonProduct['currency'] ?? $amazonProduct['currency'] ?? $this->firstText($xpath, ['//meta[@property="product:price:currency"]/@content']) ?: 'MXN',
+            'image' => $jsonProduct['image'] ?? $amazonProduct['image'] ?? $this->firstAttribute($xpath, [$selectors['image'] ?? '', '//meta[@property="og:image"]/@content'], 'src'),
             'custom_fields' => array_filter($customFields),
+        ];
+    }
+
+    private function amazonEmbeddedProduct(string $html): array
+    {
+        $name = null;
+        if (preg_match('/id=["\']productTitle["\'][^>]*>\s*([^<]{3,240})\s*</is', $html, $nameMatch)) {
+            $name = trim(html_entity_decode(strip_tags($nameMatch[1])));
+        } elseif (preg_match('/"title"\s*:\s*"([^"]{3,240})"/is', $html, $nameMatch)) {
+            $name = trim(json_decode('"'.$nameMatch[1].'"') ?: $nameMatch[1]);
+        }
+        if (!$name) {
+            return [];
+        }
+
+        preg_match('/(?:a-offscreen|priceblock_ourprice|priceblock_dealprice)[^>]*>([^<]+)/is', $html, $priceMatch);
+        preg_match('/(?:id=["\']landingImage["\'][^>]+(?:src|data-old-hires)=["\']|["\']image["\']\s*:\s*["\'])([^"\']+)/is', $html, $imageMatch);
+
+        return [
+            'name' => $name ?: null,
+            'price' => $priceMatch[1] ?? null,
+            'currency' => 'MXN',
+            'image' => $imageMatch[1] ?? null,
         ];
     }
 
