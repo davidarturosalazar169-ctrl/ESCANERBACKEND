@@ -1,20 +1,24 @@
 
 # syntax=docker/dockerfile:1.4
 
-FROM php:8.4-fpm-alpine
+FROM php:8.4-fpm-bookworm
 
 # Instalar dependencias necesarias para SQLite
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     supervisor \
     curl \
     libpng-dev \
     libxml2-dev \
+    libsqlite3-dev \
+    libzip-dev \
     zip \
     unzip \
     git \
-    sqlite-dev \
-    && docker-php-ext-install pdo pdo_sqlite bcmath gd
+    nodejs \
+    npm \
+    && docker-php-ext-install pdo pdo_sqlite bcmath gd zip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Instalar Composer globalmente
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -27,6 +31,10 @@ COPY . .
 
 # Instalar las dependencias de producción de Laravel
 RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Instalar Playwright y Chromium para el escáner dinámico
+RUN npm ci --no-audit --no-fund \
+    && npx playwright install --with-deps chromium
 
 # Limpiar las cachés de configuración, rutas, vistas y eventos de Laravel
 RUN php artisan config:clear \
