@@ -10,10 +10,11 @@ if (!url) {
 
 const host = new URL(url).hostname.toLowerCase()
 const rules = [
-  { match: 'amazon.', name: 'Amazon', selectors: { name: '#productTitle', price: '.a-price .a-offscreen', image: '#landingImage' } },
-  { match: 'mercadolibre.', name: 'Mercado Libre', selectors: { name: '.ui-pdp-title', price: '.andes-money-amount__fraction', image: '.ui-pdp-gallery__figure img, img[src*="mlstatic.com"]' } },
-  { match: 'ebay.', name: 'eBay', selectors: { name: '.x-item-title__mainTitle', price: '.x-price-primary span', image: '.ux-image-carousel-item img' } },
-  { match: 'liverpool.', name: 'Liverpool', selectors: { name: 'h1, [data-testid="product-name"]', price: '[data-testid="discounted"], [data-testid="price"]', image: '[data-testid*="gallery__main__image__image"], img[src*="liverpool.com.mx/i/"]' } },
+  { match: 'amazon.', name: 'Amazon', selectors: { name: '#productTitle', price: '.a-price .a-offscreen, #priceblock_ourprice, #priceblock_dealprice, .priceToPay', image: '#landingImage, #imgBlkFront' } },
+  { match: 'mercadolibre.', name: 'Mercado Libre', selectors: { name: '.ui-pdp-title, [data-testid="ui-pdp-title"]', price: '.andes-money-amount__fraction, [data-testid*="price"]', image: '.ui-pdp-gallery__figure img, img[src*="mlstatic.com"]' } },
+  { match: 'ebay.', name: 'eBay', selectors: { name: '.x-item-title__mainTitle, h1', price: '.x-price-primary span, [itemprop="price"]', image: '.ux-image-carousel-item img, [itemprop="image"]' } },
+  { match: 'liverpool.', name: 'Liverpool', selectors: { name: 'h1, [data-testid="product-name"]', price: '[data-testid="discounted"], [data-testid="price"], [itemprop="price"]', image: '[data-testid*="gallery__main__image__image"], img[src*="liverpool.com.mx/i/"]' } },
+  { match: 'buscalibre.', name: 'Buscalibre', selectors: { name: 'h1, .titulo, .product-name', price: '.precio, .price, [itemprop="price"]', image: '.product-image img, [itemprop="image"]' } },
 ]
 const rule = rules.find((item) => host.includes(item.match))
 const selectors = { ...(rule?.selectors || {}), ...customSelectors }
@@ -88,7 +89,15 @@ try {
           .map((element) => element.textContent?.trim())
           .find(Boolean) || null
       }
-      const attr = (selector, name) => selector ? document.querySelector(selector)?.getAttribute(name) : null
+      const attr = (selector, names) => {
+        if (!selector) return null
+        const element = document.querySelector(selector)
+        for (const name of names) {
+          const value = element?.getAttribute(name)
+          if (value) return value
+        }
+        return null
+      }
       const customFields = Object.fromEntries(
         Object.entries(selectors || {})
           .filter(([key, selector]) => !['name', 'price', 'image'].includes(key) && selector)
@@ -99,11 +108,17 @@ try {
           const value = JSON.parse(node.textContent)
           return value?.['@graph'] ?? (Array.isArray(value) ? value : [value])
         } catch { return [] }
-      }).find((item) => ['Product', 'ProductGroup'].includes(item?.['@type']))
+      }).find((item) => {
+        const type = item?.['@type']
+        return type === 'Product' || type === 'ProductGroup' || type?.includes?.('Product')
+      })
       const offer = Array.isArray(jsonLd?.offers) ? jsonLd.offers[0] : jsonLd?.offers
       const embeddedText = [...document.scripts].map((node) => node.textContent || '').find((text) => /price|product|title/i.test(text)) || ''
       const embeddedName = embeddedText.match(/"(?:title|name)"\s*:\s*"([^"]{3,200})"/i)?.[1]
       const embeddedPrice = embeddedText.match(/["'](?:price|amount|ecomm_totalvalue)["']\s*:\s*["']?([\d,.]+)/i)?.[1]
+      const meta = (selector) => document.querySelector(selector)?.getAttribute('content') || null
+      const firstText = (...values) => values.find((value) => typeof value === 'string' && value.trim())?.trim() || null
+      const image = Array.isArray(jsonLd?.image) ? jsonLd.image[0] : jsonLd?.image
       const liverpoolPrice = (() => {
         const node = document.querySelector('[data-testid="discounted"]')
         if (!node) return null
@@ -112,14 +127,20 @@ try {
         return match ? `${match[1]}${match[2] ? `.${match[2]}` : ''}` : null
       })()
       return {
-        name: jsonLd?.name || text(selectors?.name) || text('h1') || document.querySelector('meta[property="og:title"]')?.content || embeddedName || document.title,
-        price: offer?.price || liverpoolPrice || text(selectors?.price) || text('.priceToPay') || document.querySelector('meta[property="product:price:amount"]')?.content || embeddedPrice,
-        currency: offer?.priceCurrency || document.querySelector('meta[property="product:price:currency"]')?.content || 'MXN',
-        image: Array.isArray(jsonLd?.image) ? jsonLd.image[0] : jsonLd?.image || attr(selectors?.image, 'src') || document.querySelector('meta[property="og:image"]')?.content,
+        name: firstText(jsonLd?.name, text(selectors?.name), text('h1'), meta('meta[property="og:title"]'), embeddedName, document.title),
+        price: firstText(offer?.price, liverpoolPrice, text(selectors?.price), text('.priceToPay'), meta('meta[property="product:price:amount"]'), embeddedPrice),
+        currency: firstText(offer?.priceCurrency, meta('meta[property="product:price:currency"]'), 'MXN'),
+        image: firstText(image, attr(selectors?.image, ['src', 'data-src', 'data-old-hires']), meta('meta[property="og:image"]')),
         custom_fields: customFields,
       }
     }, selectors)
-    const genericName = !data.name || ['amazon', 'mercado libre', 'ebay'].includes(data.name.trim().toLowerCase())
+    const genericName = !data.name || [
+      'amazon',
+      'amazon.com.mx',
+      'mercado libre',
+      'ebay',
+      'seguir al autor',
+    ].includes(data.name.trim().toLowerCase())
     if (genericName || (!data.price && !data.image)) {
       const message = host.includes('mercadolibre.')
         ? 'Mercado Libre bloqueó la página o API. Configura un token OAuth válido en MERCADOLIBRE_ACCESS_TOKEN.'
