@@ -61,8 +61,12 @@ const browser = await chromium.launch({
 })
 const page = await browser.newPage({
   viewport: { width: 1440, height: 1000 },
-  userAgent: 'EscanerParcial2/1.0 (+product research)',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  extraHTTPHeaders: {
+    'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8',
+  },
 })
+
 
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
