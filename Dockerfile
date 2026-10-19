@@ -106,6 +106,7 @@ http {
             }
 
             fastcgi_pass 127.0.0.1:9000;
+            fastcgi_pass_header Set-Cookie;
             fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
             include fastcgi_params;
         }
