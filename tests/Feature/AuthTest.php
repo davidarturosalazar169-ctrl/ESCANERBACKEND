@@ -19,9 +19,13 @@ class AuthTest extends TestCase
             'password' => 'password',
         ]);
 
-        $response->assertOk()->assertJsonPath('user.email', $user->email);
+        $response->assertOk()->assertJsonPath('user.email', $user->email)->assertJsonStructure(['token']);
         $response->assertCookie(config('session.cookie'));
         $this->getJson('/api/me')->assertOk()->assertJsonPath('user.id', $user->id);
+        $this->withHeader('Authorization', 'Bearer '.$response->json('token'))
+            ->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('user.id', $user->id);
     }
 
     public function test_invalid_credentials_are_rejected(): void

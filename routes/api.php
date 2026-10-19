@@ -3,7 +3,6 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ScannerController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Session\Middleware\StartSession;
 use App\Http\Controllers\Api\PruebaBDController;
 
 /*
@@ -16,11 +15,11 @@ use App\Http\Controllers\Api\PruebaBDController;
 |
 */
 
-Route::middleware(['web', StartSession::class])->group(function (): void {
+Route::middleware('web')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
 
-    Route::middleware('auth')->group(function (): void {
+    Route::middleware('api.token')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/scan', [ScannerController::class, 'scan']);

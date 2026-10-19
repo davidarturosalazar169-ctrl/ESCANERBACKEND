@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
 ->withMiddleware(function (Middleware $middleware): void {
     $middleware->validateCsrfTokens(except: ['api/*']);
+    $middleware->alias([
+        'api.token' => \App\Http\Middleware\ApiTokenAuthentication::class,
+    ]);
 
 $middleware->prepend(
     \Illuminate\Http\Middleware\HandleCors::class

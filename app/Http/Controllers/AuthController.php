@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -32,6 +33,7 @@ class AuthController extends Controller
         }
 
         $request->session()->regenerate();
+        $token = $this->createApiToken($request->user()->id);
         Log::info('Auth login success', [
             'user_id' => $request->user()->id,
             'session_id_after' => $request->session()->getId(),
@@ -43,6 +45,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $request->user(),
             'message' => 'Inicio de sesión correcto.',
+            'token' => $token,
         ])->withCookie($this->sessionCookie($request));
     }
 
@@ -57,8 +60,9 @@ class AuthController extends Controller
         $user = \App\Models\User::create($data);
         Auth::login($user);
         $request->session()->regenerate();
+        $token = $this->createApiToken($user->id);
 
-        return response()->json(['user' => $user, 'message' => 'Registro correcto.'], 201)
+        return response()->json(['user' => $user, 'message' => 'Registro correcto.', 'token' => $token], 201)
             ->withCookie($this->sessionCookie($request));
     }
 
@@ -84,6 +88,10 @@ class AuthController extends Controller
         ]);
 
         Auth::logout();
+        $plainToken = $request->bearerToken();
+        if ($plainToken) {
+            \App\Models\ApiToken::where('token_hash', hash('sha256', $plainToken))->delete();
+        }
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
@@ -103,5 +111,16 @@ class AuthController extends Controller
             false,
             config('session.same_site'),
         );
+    }
+
+    private function createApiToken(int $userId): string
+    {
+        $plainToken = Str::random(80);
+        \App\Models\ApiToken::create([
+            'user_id' => $userId,
+            'token_hash' => hash('sha256', $plainToken),
+        ]);
+
+        return $plainToken;
     }
 }
