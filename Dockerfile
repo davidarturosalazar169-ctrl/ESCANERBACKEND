@@ -35,6 +35,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Configurar el directorio de trabajo
 WORKDIR /var/www/html
 
+# Compartir navegador Playwright entre usuario de build y usuario de runtime.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # Copiar los archivos del proyecto
 COPY . .
 
@@ -42,8 +45,10 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Instalar Playwright y Chromium para el escáner dinámico
-RUN npm ci --no-audit --no-fund \
-    && npx playwright install --with-deps chromium
+RUN mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" \
+    && npm ci --no-audit --no-fund \
+    && npx playwright install --with-deps chromium \
+    && chmod -R a+rX "$PLAYWRIGHT_BROWSERS_PATH"
 
 # Limpiar las cachés de configuración, rutas, vistas y eventos de Laravel
 RUN php artisan config:clear \
