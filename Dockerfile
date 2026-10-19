@@ -1,3 +1,4 @@
+
 # syntax=docker/dockerfile:1.4
 
 FROM php:8.4-fpm-alpine
@@ -21,19 +22,25 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Configurar el directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar los archivos del proyecto (incluyendo tu database/database.sqlite)
+# Copiar los archivos del proyecto
 COPY . .
 
 # Instalar las dependencias de producción de Laravel
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Asignar permisos únicamente (SIN tocar ni sobrescribir el archivo .sqlite)
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+# Limpiar las cachés de configuración, rutas, vistas y eventos de Laravel
+RUN php artisan config:clear \
+    && php artisan route:clear \
+    && php artisan view:clear \
+    && php artisan event:clear
 
-# ==========================================
-# CREACIÓN DE ARCHIVOS DE CONFIGURACIÓN
-# ==========================================
+# Asignar permisos sin modificar el contenido de SQLite
+RUN chown -R www-data:www-data \
+    /var/www/html/storage \
+    /var/www/html/bootstrap/cache \
+    /var/www/html/database
 
+# Configuración de Nginx
 COPY <<-"EOF" /etc/nginx/nginx.conf
 user www-data;
 worker_processes auto;
@@ -49,6 +56,19 @@ http {
     sendfile on;
     keepalive_timeout 65;
 
+    # Solo permitir los orígenes definidos
+    map $http_origin $cors_origin {
+        default "";
+        "http://localhost:5173" $http_origin;
+        "http://localhost:5174" $http_origin;
+        "http://localhost:5178" $http_origin;
+        "http://localhost:5179" $http_origin;
+        "https://localhost" $http_origin;
+        "http://localhost" $http_origin;
+        "capacitor://localhost" $http_origin;
+        "https://escanerbackend.onrender.com" $http_origin;
+    }
+
     server {
         listen 80;
         server_name localhost;
@@ -61,17 +81,27 @@ http {
             try_files $uri $uri/ /index.php?$query_string;
         }
 
-        location = /favicon.ico { access_log off; log_not_found off; }
-        location = /robots.txt  { access_log off; log_not_found off; }
+        location = /favicon.ico {
+            access_log off;
+            log_not_found off;
+        }
+
+        location = /robots.txt {
+            access_log off;
+            log_not_found off;
+        }
 
         error_page 404 /index.php;
 
         location ~ \.php$ {
+            # Cabeceras CORS para respuestas normales
+            add_header Access-Control-Allow-Origin $cors_origin always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Origin, Content-Type, Accept, Authorization, X-Requested-With" always;
+
+            # Responder directamente a las solicitudes preflight
             if ($request_method = OPTIONS) {
-                add_header Access-Control-Allow-Origin $http_origin always;
-                add_header Access-Control-Allow-Credentials "true" always;
-                add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
-                add_header Access-Control-Allow-Headers "Origin, Content-Type, Accept, Authorization, X-Requested-With" always;
                 return 204;
             }
 
@@ -87,6 +117,7 @@ http {
 }
 EOF
 
+# Configuración de Supervisor
 COPY <<-"EOF" /etc/supervisor/conf.d/supervisord.conf
 [supervisord]
 nodaemon=true
