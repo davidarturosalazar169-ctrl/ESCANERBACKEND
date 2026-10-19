@@ -12,11 +12,10 @@ return [
     ],
 
     'allowed_origins' => [
-        '*',
-        'http://localhost:5179',
         'http://localhost:5173',
         'http://localhost:5174',
         'http://localhost:5178',
+        'http://localhost:5179',
         'https://localhost',
         'http://localhost',
         'capacitor://localhost',
@@ -33,7 +32,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
-
