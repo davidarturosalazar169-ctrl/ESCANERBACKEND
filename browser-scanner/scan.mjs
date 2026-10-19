@@ -57,21 +57,31 @@ const mercadoLibreApi = async () => {
 
 const browser = await chromium.launch({
   headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
 })
 const page = await browser.newPage({
   viewport: { width: 1440, height: 1000 },
   userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
   extraHTTPHeaders: {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8',
   },
 })
 
-
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {})
-  await page.waitForTimeout(1500)
+  await page.waitForTimeout(1000)
+
+  const amazonContinue = page.locator('button:has-text("Continuar a Compras"), button:has-text("Continue shopping"), .a-box-inner button[type="submit"]')
+  if (await amazonContinue.count() > 0) {
+    await amazonContinue.first().click().catch(() => {})
+    await page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {})
+    await page.waitForTimeout(1000)
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {})
+    await page.waitForTimeout(1500)
+  }
+
   if (previewOnly) {
     console.log(JSON.stringify({ status: 'completed', html: await page.content() }))
     process.exitCode = 0
