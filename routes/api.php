@@ -57,3 +57,10 @@ Route::get('/debug-cors', function () {
         'config_cacheada' => app()->configurationIsCached(),
     ]);
 });
+
+use App\Http\Controllers\ConfiguracionApiController;
+
+Route::get('/diagnostico-config', [
+    ConfiguracionApiController::class,
+    'index'
+]);
