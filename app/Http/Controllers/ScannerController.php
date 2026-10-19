@@ -17,9 +17,22 @@ class ScannerController extends Controller
 {
     public function scan(Request $request, ProductScanner $scanner, \App\Services\BrowserScanner $browserScanner): JsonResponse
     {
+        Log::info('Scanner request', [
+            'origin' => $request->header('Origin'),
+            'user_id' => $request->user()?->id,
+            'authenticated' => $request->user() !== null,
+            'session_id' => $request->session()->getId(),
+        ]);
+
         $data = $request->validate(['url' => ['required', 'url', 'max:2048']]);
         try {
-            return response()->json($scanner->scan($data['url'], $request->user()->id, $browserScanner), 201);
+            $result = $scanner->scan($data['url'], $request->user()->id, $browserScanner);
+            Log::info('Scanner success', [
+                'user_id' => $request->user()->id,
+                'scan_id' => $result['scan_id'] ?? null,
+                'has_product' => isset($result['product']),
+            ]);
+            return response()->json($result, 201);
         } catch (\Throwable $exception) {
             Log::warning('Product scan failed', ['url' => $data['url'], 'error' => $exception->getMessage()]);
             throw ValidationException::withMessages(['url' => [$exception->getMessage()]]);
