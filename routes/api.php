@@ -44,6 +44,8 @@ Route::get('/status', function () {
         'ok' => true,
         'message' => 'API funcionando correctamente.',
         'service' => 'EscanerParcial2 API',
+        'scanner_fallback' => 'playwright-then-http-static',
+        'build' => env('APP_BUILD', '805eb2e'),
         'timestamp' => now()->toIso8601String(),
     ]);
 });
