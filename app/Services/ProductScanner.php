@@ -43,6 +43,9 @@ class ProductScanner
             } else {
                 try {
                     $data = $browserScanner->scan($url, $customSelectors);
+                    if (!$this->hasVerifiedProductData($data, $rule['name'], $host)) {
+                        $data = $this->scanStaticPage($url, ['selectors' => $staticSelectors]);
+                    }
                 } catch (\Throwable $browserException) {
                     try {
                         $data = $this->scanStaticPage($url, ['selectors' => $staticSelectors]);
@@ -57,10 +60,7 @@ class ProductScanner
                 }
             }
             $data['price'] = $this->price((string) ($data['price'] ?? ''));
-            $normalizedHost = str_replace('www.', '', strtolower($host));
-            $nameLooksLikeStorePage = str_contains(strtolower(trim((string) $data['name'])), $normalizedHost)
-                || strtolower(trim((string) $data['name'])) === strtolower($rule['name']);
-            if ($data['name'] === null || $nameLooksLikeStorePage || $data['price'] === null) {
+            if (!$this->hasVerifiedProductData($data, $rule['name'], $host)) {
                 throw new RuntimeException('No se encontraron nombre y precio verificables del producto.');
             }
 
@@ -136,6 +136,17 @@ class ProductScanner
             ->body();
 
         return $this->extract($html, $rule['selectors'] ?? []);
+    }
+
+    private function hasVerifiedProductData(array $data, string $storeName, string $host): bool
+    {
+        $name = strtolower(trim((string) ($data['name'] ?? '')));
+        $normalizedHost = str_replace('www.', '', strtolower($host));
+        $nameLooksLikeStorePage = $name === ''
+            || str_contains($name, $normalizedHost)
+            || $name === strtolower($storeName);
+
+        return !$nameLooksLikeStorePage && $data['price'] !== null && $data['price'] !== '';
     }
 
     private function extract(string $html, array $selectors): array
