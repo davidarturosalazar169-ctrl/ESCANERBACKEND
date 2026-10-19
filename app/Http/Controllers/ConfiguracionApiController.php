@@ -70,6 +70,17 @@ class ConfiguracionApiController extends Controller
                     \Illuminate\Http\Middleware\HandleCors::class
                 ),
             ],
+
+            'sesion' => [
+                'driver' => config('session.driver'),
+                'cookie' => config('session.cookie'),
+                'secure' => config('session.secure'),
+                'same_site' => config('session.same_site'),
+                'domain' => config('session.domain'),
+                'session_started' => $request->hasSession() && $request->session()->isStarted(),
+                'session_id' => $request->hasSession() ? $request->session()->getId() : null,
+                'cookie_recibida' => $request->hasCookie(config('session.cookie')),
+            ],
         ]);
     }
 }
