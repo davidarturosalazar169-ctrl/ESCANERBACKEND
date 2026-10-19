@@ -34,7 +34,8 @@ class BrowserScanner
             throw new RuntimeException($details ? "El navegador no devolvió JSON válido: {$details}" : 'El navegador no devolvió datos válidos.');
         }
         if (($payload['status'] ?? null) === 'challenge') {
-            throw new RuntimeException($payload['error'] ?? 'La tienda requiere verificación humana.');
+            $diagnostics = isset($payload['diagnostics']) ? ' Diagnóstico: '.json_encode($payload['diagnostics'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
+            throw new RuntimeException(($payload['error'] ?? 'La tienda requiere verificación humana.').$diagnostics);
         }
         if (!$result->successful() || ($payload['status'] ?? null) !== 'completed') {
             throw new RuntimeException($payload['error'] ?? trim($result->errorOutput()) ?: 'No se pudo cargar la página.');
@@ -46,6 +47,7 @@ class BrowserScanner
             'currency' => $payload['currency'] ?? 'MXN',
             'image' => $payload['image'] ?? null,
             'custom_fields' => $payload['custom_fields'] ?? [],
+            'diagnostics' => $payload['diagnostics'] ?? [],
         ];
     }
 

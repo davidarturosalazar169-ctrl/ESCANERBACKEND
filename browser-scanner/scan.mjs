@@ -132,6 +132,17 @@ try {
         currency: firstText(offer?.priceCurrency, meta('meta[property="product:price:currency"]'), 'MXN'),
         image: firstText(image, attr(selectors?.image, ['src', 'data-src', 'data-old-hires']), meta('meta[property="og:image"]')),
         custom_fields: customFields,
+        diagnostics: {
+          title: document.title,
+          url: location.href,
+          jsonLdProductFound: Boolean(jsonLd),
+          selectorMatches: Object.fromEntries(
+            Object.entries(selectors || {}).map(([key, selector]) => [key, selector ? document.querySelectorAll(selector).length : 0])
+          ),
+          metaTitle: meta('meta[property="og:title"]'),
+          metaPrice: meta('meta[property="product:price:amount"]'),
+          bodyPreview: document.body?.innerText?.trim().slice(0, 300) || '',
+        },
       }
     }, selectors)
     const genericName = !data.name || [
@@ -145,7 +156,7 @@ try {
       const message = host.includes('mercadolibre.')
         ? 'Mercado Libre bloqueó la página o API. Configura un token OAuth válido en MERCADOLIBRE_ACCESS_TOKEN.'
         : 'La tienda no entregó datos de producto. Puede requerir JavaScript adicional, CAPTCHA o sesión.'
-      console.log(JSON.stringify({ status: 'challenge', store: rule?.name ?? host, error: message }))
+      console.log(JSON.stringify({ status: 'challenge', store: rule?.name ?? host, error: message, diagnostics: data.diagnostics }))
       process.exitCode = 3
     } else {
       console.log(JSON.stringify({ status: 'completed', store: rule?.name, ...data }))
@@ -153,7 +164,7 @@ try {
   }
   }
 } catch (error) {
-  console.log(JSON.stringify({ status: 'failed', error: error.message }))
+  console.log(JSON.stringify({ status: 'failed', error: error.message, url }))
   process.exitCode = 1
 } finally {
   await browser.close()
