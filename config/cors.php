@@ -1,7 +1,10 @@
 <?php
 
 return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+    ],
 
     'allowed_methods' => ['*'],
 
@@ -12,10 +15,7 @@ return [
         'http://127.0.0.1:5174',
     ],
 
-    'allowed_origins_patterns' => [
-        '^https?://(localhost|127\.0\.0\.1)(:\d+)?$',
-        '^capacitor://localhost$',
-    ],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
