@@ -67,11 +67,11 @@ http {
         error_page 404 /index.php;
 
         location ~ \.php$ {
-            add_header Access-Control-Allow-Origin "*" always;
-            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
-            add_header Access-Control-Allow-Headers "Origin, Content-Type, Accept, Authorization, X-Requested-With" always;
-
             if ($request_method = OPTIONS) {
+                add_header Access-Control-Allow-Origin $http_origin always;
+                add_header Access-Control-Allow-Credentials "true" always;
+                add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+                add_header Access-Control-Allow-Headers "Origin, Content-Type, Accept, Authorization, X-Requested-With" always;
                 return 204;
             }
 
