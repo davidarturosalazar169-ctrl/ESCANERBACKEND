@@ -43,7 +43,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $request->user(),
             'message' => 'Inicio de sesión correcto.',
-        ]);
+        ])->withCookie($this->sessionCookie($request));
     }
 
     public function register(Request $request): JsonResponse
@@ -58,7 +58,8 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return response()->json(['user' => $user, 'message' => 'Registro correcto.'], 201);
+        return response()->json(['user' => $user, 'message' => 'Registro correcto.'], 201)
+            ->withCookie($this->sessionCookie($request));
     }
 
     public function me(Request $request): JsonResponse
@@ -87,5 +88,20 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return response()->json(['message' => 'Sesión cerrada.']);
+    }
+
+    private function sessionCookie(Request $request)
+    {
+        return cookie(
+            config('session.cookie'),
+            $request->session()->getId(),
+            config('session.lifetime'),
+            config('session.path'),
+            config('session.domain'),
+            config('session.secure'),
+            config('session.http_only'),
+            false,
+            config('session.same_site'),
+        );
     }
 }
