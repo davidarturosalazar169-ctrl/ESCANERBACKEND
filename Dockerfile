@@ -143,4 +143,7 @@ EOF
 
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+COPY docker/start.sh /usr/local/bin/start-escaner
+RUN chmod +x /usr/local/bin/start-escaner
+
+CMD ["/usr/local/bin/start-escaner"]
